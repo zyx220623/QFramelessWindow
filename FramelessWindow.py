@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (QPushButton,
                                QWidget,
                                QApplication,
                                QMainWindow)
-from typing_extensions import Literal
 
 class FrameLessWindow(QMainWindow):
     edge: int
@@ -40,14 +39,14 @@ class FrameLessWindow(QMainWindow):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.__screen__ = QGuiApplication.primaryScreen().size()
 
-    def __init__(self, appname: str = None, apphandle: int = None, parent: QWidget = None,
-                 background_color_rgba: list[int] | tuple[int] | set[int] = (255, 255, 255, 0.9),
+    def __init__(self, appname: str = None, apphandle: int = None, parent: QWidget | None = None,
+                 background_color_rgba: tuple[int, int, int, int] | list[int] | set[int] = (0,0,0, 0.9),
                  taskbar_height: int = 44,
                  MinimumSize: QSize = QSize(400, 225),
                  ReSize: QSize = QSize(400, 225),
                  Position: QPoint | None = None,
-                 title_background_color_rgba: tuple[int] | list[int] | set[int] = (0, 0, 0, 1),
-                 title_text_color_rgba: tuple[int] | list[int] | set[int] = (255, 255, 255, 1),
+                 title_background_color_rgba: tuple[int, int, int, int] | list[int] | set[int] = (0,0,0, 1),
+                 title_text_color_rgba: tuple[int, int, int, int] | list[int] | set[int] = (255,255,255, 1),
                  title_height: int = 35
                  ):
         super(FrameLessWindow, self).__init__(parent)
@@ -58,13 +57,14 @@ class FrameLessWindow(QMainWindow):
         self.appname = appname
         self.apphandle = apphandle
         self.parent_name = parent
+        self.background_color_rgba = background_color_rgba
+        self.title_background_color_rgba = title_background_color_rgba
+        self.title_height = title_height
+        self.title_text_color_rgba = title_text_color_rgba
         self.setStyleSheet("QPushButton {"
                            f"background-color: rgba({background_color_rgba[0]},{background_color_rgba[1]},{background_color_rgba[2]},{background_color_rgba[3]});"
                            "border: none;"
                            "}")
-        self.__setWindowTitleBar(background_color_rgba=title_background_color_rgba,
-                                 color_rgba=title_text_color_rgba,
-                                 title_height=title_height)
         self.__setMainWidget()
         self.__setThreeButton()
         if Position is not None:
@@ -77,7 +77,9 @@ class FrameLessWindow(QMainWindow):
     def setWindowTitle(self, arg__1):
         super().setWindowTitle(arg__1)
         self.title = arg__1
-        self.__setWindowTitleBar()
+        self.__setWindowTitleBar(title_height=self.title_height,
+                                 background_color_rgba=self.title_background_color_rgba,
+                                 color_rgba=self.title_text_color_rgba)
 
     def setWindowIcon(self, icon: QIcon | QPixmap):
         super().setWindowIcon(icon)
@@ -99,10 +101,10 @@ class FrameLessWindow(QMainWindow):
         self.ToDownArea.setGeometry(0, self.size().height() - self.edge, self.size().width(), self.edge)
         self.ToLeftArea.setGeometry(0, 0, self.edge, self.size().height())
         self.ToRightArea.setGeometry(self.size().width() - self.edge, 0, self.edge, self.size().height())
-        self.main_widget.setGeometry(self.edge,
+        self.main_widget.setGeometry(0,
                                      self.title_height,
-                                     self.size().width() - 2 * self.edge,
-                                     self.size().height() - self.title_height - self.edge)
+                                     self.size().width(),
+                                     self.size().height())
         self.UpRightArea.setGeometry(self.size().width() - self.edge, 0, self.edge, self.edge)
         self.DownRightArea.setGeometry(self.size().width() - self.edge, self.size().height() - self.edge, self.edge,
                                        self.edge)
@@ -122,14 +124,8 @@ class FrameLessWindow(QMainWindow):
         self.main_widget = QPushButton(self)
         self.main_widget.setStyleSheet("QPushButton {"
                                        "border: none;"
-                                       "background-color: rgba(0, 0, 0, 0);"
+                                       f"background-color: rgba({self.background_color_rgba[0]}, {self.background_color_rgba[1]}, {self.background_color_rgba[2]}, {self.background_color_rgba[3]});"
                                        "}")
-        self.main_widget.setGeometry(self.edge,
-                                     self.title_height,
-                                     self.size().width() - 2 * self.edge,
-                                     self.size().height() - self.title_height - self.edge)
-
-        self.main_widget.raise_()
 
     def __setNoneEvent(self):
         self.ToUpArea.mouseMoveEvent = self.__NoneEvent
@@ -156,37 +152,6 @@ class FrameLessWindow(QMainWindow):
         self.DownLeftArea.mouseMoveEvent = self.__NoneEvent
         self.DownLeftArea.mousePressEvent = self.__NoneEvent
         self.DownLeftArea.mouseReleaseEvent = self.__NoneEvent
-
-    def __isNoneEvent(self):
-        result = True
-        for i in (self.ToUpArea.mouseMoveEvent == self.__NoneEvent,
-                  self.ToUpArea.mousePressEvent == self.__NoneEvent,
-                  self.ToUpArea.mouseReleaseEvent == self.__NoneEvent,
-                  self.ToDownArea.mouseMoveEvent == self.__NoneEvent,
-                  self.ToDownArea.mousePressEvent == self.__NoneEvent,
-                  self.ToDownArea.mouseReleaseEvent == self.__NoneEvent,
-                  self.ToLeftArea.mouseMoveEvent == self.__NoneEvent,
-                  self.ToLeftArea.mousePressEvent == self.__NoneEvent,
-                  self.ToLeftArea.mouseReleaseEvent == self.__NoneEvent,
-                  self.ToRightArea.mouseMoveEvent == self.__NoneEvent,
-                  self.ToRightArea.mousePressEvent == self.__NoneEvent,
-                  self.ToRightArea.mouseReleaseEvent == self.__NoneEvent,
-                  self.UpLeftArea.mouseMoveEvent == self.__NoneEvent,
-                  self.UpLeftArea.mousePressEvent == self.__NoneEvent,
-                  self.UpLeftArea.mouseReleaseEvent == self.__NoneEvent,
-                  self.UpRightArea.mouseMoveEvent == self.__NoneEvent,
-                  self.UpRightArea.mousePressEvent == self.__NoneEvent,
-                  self.UpRightArea.mouseReleaseEvent == self.__NoneEvent,
-                  self.DownRightArea.mouseMoveEvent == self.__NoneEvent,
-                  self.DownRightArea.mousePressEvent == self.__NoneEvent,
-                  self.DownRightArea.mouseReleaseEvent == self.__NoneEvent,
-                  self.DownLeftArea.mouseMoveEvent == self.__NoneEvent,
-                  self.DownLeftArea.mousePressEvent == self.__NoneEvent,
-                  self.DownLeftArea.mouseReleaseEvent == self.__NoneEvent):
-            if not i:
-                result = False
-                break
-        return result
 
     def __setNormalEvent(self):
         self.ToUpArea.mouseMoveEvent = self.__toUpMoveEvent
@@ -315,8 +280,8 @@ class FrameLessWindow(QMainWindow):
                 self.showMaximized()
 
     def __setWindowTitleBar(self,
-                            background_color_rgba: tuple[int] | list[int] | set[int] = (0, 0, 0, 1),
-                            color_rgba: tuple[int] | list[int] | set[int] = (255, 255, 255, 1),
+                            background_color_rgba: tuple[int, int, int, int] | list[int, int, int, int] | set[int, int, int, int],
+                            color_rgba: tuple[int, int, int, int] | list[int, int, int, int] | set[int, int, int, int],
                             title_height: int = 35):
         try:
             self.title
@@ -792,7 +757,7 @@ class FrameLessWindow(QMainWindow):
 
 
 app = QApplication(sys.argv)
-window = FrameLessWindow(taskbar_height=40)
+window = FrameLessWindow(taskbar_height=40, background_color_rgba=[0,0,0,1])
 window.setWindowTitle("FramelessWindow 示例")
 window.setWindowIcon(QIcon("icon.png"))  # 替换成你的图标路径
 window.show()
