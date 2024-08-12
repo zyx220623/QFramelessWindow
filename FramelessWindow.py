@@ -8,11 +8,12 @@ from PySide6.QtGui import (QPixmap,
                            QCursor,
                            QGuiApplication,
                            QIcon,
-                           QFont)
+                           QFont, QAction)
 from PySide6.QtWidgets import (QPushButton,
                                QWidget,
                                QApplication,
-                               QMainWindow)
+                               QMainWindow, QMenu)
+
 
 class FrameLessWindow(QMainWindow):
     edge: int
@@ -37,34 +38,41 @@ class FrameLessWindow(QMainWindow):
         self.beginning_pos_down = QCursor().pos()
         self.setMouseTracking(True)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self.__setWindowStatusMenu()
         self.__screen__ = QGuiApplication.primaryScreen().size()
 
-    def __init__(self, appname: str = None, apphandle: int = None, parent: QWidget | None = None,
-                 background_color_rgba: tuple[int, int, int, int] | list[int] | set[int] = (0,0,0, 0.9),
+    def __init__(self, parent: QWidget | None = None,
                  taskbar_height: int = 44,
                  MinimumSize: QSize = QSize(400, 225),
                  ReSize: QSize = QSize(400, 225),
                  Position: QPoint | None = None,
-                 title_background_color_rgba: tuple[int, int, int, int] | list[int] | set[int] = (0,0,0, 1),
-                 title_text_color_rgba: tuple[int, int, int, int] | list[int] | set[int] = (255,255,255, 1),
-                 title_height: int = 35
-                 ):
+                 title_height: int = 35,
+                 title_font_size: int = 15,
+                 background_color_rgba: tuple[int, int, int, int] | list[int] | set[int] = (255, 255, 255, 1),
+                 title_background_color_rgba: tuple[int, int, int, int] | list[int] | set[int] = (0, 0, 0, 1),
+                 title_text_color_rgba: tuple[int, int, int, int] | list[int] | set[int] = (255, 255, 255, 1),
+                 button_hoverColor: tuple[int, int, int, int] | list[int] | set[int] = (100, 100, 100, 1),
+                 closeButton_hoverColor: tuple[int, int, int, int] | list[int] | set[int] = (255, 0, 0, 1)):
         super(FrameLessWindow, self).__init__(parent)
         self.__attributeInit()
         self.setMinimumSize(MinimumSize)
         self.resize(ReSize)
         self.taskbar_height = taskbar_height
-        self.appname = appname
-        self.apphandle = apphandle
+        self.button_hoverColor = button_hoverColor
+        self.closeButton_hoverColor = closeButton_hoverColor
+        self.title_font_size = title_font_size
         self.parent_name = parent
         self.background_color_rgba = background_color_rgba
         self.title_background_color_rgba = title_background_color_rgba
         self.title_height = title_height
         self.title_text_color_rgba = title_text_color_rgba
-        self.setStyleSheet("QPushButton {"
+        self.setStyleSheet("QMainWindow {"
                            f"background-color: rgba({background_color_rgba[0]},{background_color_rgba[1]},{background_color_rgba[2]},{background_color_rgba[3]});"
                            "border: none;"
                            "}")
+        self.title = ""
+        self.__setWindowTitleBar(background_color_rgba=self.title_background_color_rgba,
+                                 color_rgba=self.title_text_color_rgba)
         self.__setMainWidget()
         self.__setThreeButton()
         if Position is not None:
@@ -77,11 +85,13 @@ class FrameLessWindow(QMainWindow):
     def setWindowTitle(self, arg__1):
         super().setWindowTitle(arg__1)
         self.title = arg__1
-        self.__setWindowTitleBar(title_height=self.title_height,
-                                 background_color_rgba=self.title_background_color_rgba,
+        self.__setWindowTitleBar(background_color_rgba=self.title_background_color_rgba,
                                  color_rgba=self.title_text_color_rgba)
 
     def setWindowIcon(self, icon: QIcon | QPixmap):
+        def windowIconDoubleClickedEvent(event: QMouseEvent):
+            self.close()
+
         super().setWindowIcon(icon)
         self.__icon__ = icon
         self.icon_image = QPushButton(self)
@@ -93,9 +103,12 @@ class FrameLessWindow(QMainWindow):
                                       "background-color: rgba(0,0,0,0);"
                                       "border: none;"
                                       "}")
+        self.icon_image.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.icon_image.customContextMenuRequested.connect(self.__showWindowStatusMenuFromIcon)
+        self.icon_image.mouseDoubleClickEvent = windowIconDoubleClickedEvent
 
     def resizeEvent(self, event):
-        self.WindowTitleBar.setGeometry(0, 0, self.size().width(), 35)
+        self.WindowTitleBar.setGeometry(self.title_height + 5, 0, self.size().width(), self.title_height)
         self.MoveableArea.setGeometry(0, 0, self.size().width(), self.title_height)
         self.ToUpArea.setGeometry(0, 0, self.size().width(), self.edge)
         self.ToDownArea.setGeometry(0, self.size().height() - self.edge, self.size().width(), self.edge)
@@ -118,13 +131,21 @@ class FrameLessWindow(QMainWindow):
         self.MinimumButton.raise_()
         self.ToUpArea.raise_()
         self.ToRightArea.raise_()
+        self.ToDownArea.raise_()
+        self.ToLeftArea.raise_()
         self.UpRightArea.raise_()
         self.DownRightArea.raise_()
+        self.UpLeftArea.raise_()
+        self.DownLeftArea.raise_()
+
+    def close(self):
+        super().close()
+
     def __setMainWidget(self):
         self.main_widget = QPushButton(self)
         self.main_widget.setStyleSheet("QPushButton {"
                                        "border: none;"
-                                       f"background-color: rgba({self.background_color_rgba[0]}, {self.background_color_rgba[1]}, {self.background_color_rgba[2]}, {self.background_color_rgba[3]});"
+                                       f"background-color: rgba({self.background_color_rgba[0]}, {self.background_color_rgba[1]}, {self.background_color_rgba[2]}, 0);"
                                        "}")
 
     def __setNoneEvent(self):
@@ -152,6 +173,7 @@ class FrameLessWindow(QMainWindow):
         self.DownLeftArea.mouseMoveEvent = self.__NoneEvent
         self.DownLeftArea.mousePressEvent = self.__NoneEvent
         self.DownLeftArea.mouseReleaseEvent = self.__NoneEvent
+        self.__setWindowStatusMenuOnEdge()
 
     def __setNormalEvent(self):
         self.ToUpArea.mouseMoveEvent = self.__toUpMoveEvent
@@ -182,12 +204,14 @@ class FrameLessWindow(QMainWindow):
         self.DownLeftArea.mouseMoveEvent = self.__DownLeftMoveEvent
         self.DownLeftArea.mousePressEvent = self.__DownLeftPressEvent
         self.DownLeftArea.mouseReleaseEvent = self.__DownLeftReleaseEvent
+        self.__setWindowStatusMenu()
 
     def showMaximized(self):
         """自定义最大化方法"""
         super().showMaximized()
         self.MaximumButton.setIcon(QIcon("normal.png"))
         self.__setNoneEvent()
+        self.__setWindowStatusMenuOnMax()
 
     def showLined(self):
         self.setGeometry(self.pos().x(), 0, self.size().width(), self.__screen__.height() - self.taskbar_height)
@@ -280,41 +304,145 @@ class FrameLessWindow(QMainWindow):
                 self.showMaximized()
 
     def __setWindowTitleBar(self,
-                            background_color_rgba: tuple[int, int, int, int] | list[int, int, int, int] | set[int, int, int, int],
-                            color_rgba: tuple[int, int, int, int] | list[int, int, int, int] | set[int, int, int, int],
-                            title_height: int = 35):
+                            background_color_rgba: tuple[int, int, int, int] | list[int] | set[int],
+                            color_rgba: tuple[int, int, int, int] | list[int] | set[int]):
         try:
             self.title
         except:
             self.title = ""
-        self.title_height = title_height
         self.WindowTitleBackground = QPushButton(self)
         self.WindowTitleBackground.setStyleSheet("QPushButton {"
                                                  f"background-color: rgba({background_color_rgba[0]}, {background_color_rgba[1]}, {background_color_rgba[2]}, {background_color_rgba[3]});"
                                                  "border: none;"
                                                  "}")
-        self.WindowTitleBackground.setGeometry(0, 0, self.__screen__.width(), title_height)
-        self.WindowTitleBar = QPushButton("           " + self.title, self)
-        self.WindowTitleBar.setGeometry(0, 0, self.size().width(), title_height)
+        self.WindowTitleBackground.setGeometry(0, 0, self.__screen__.width(), self.title_height)
+        self.WindowTitleBar = QPushButton(self.title, self)
+        self.WindowTitleBar.setGeometry(self.title_height + 5, 0, self.size().width(), self.title_height)
         self.WindowTitleBar.setStyleSheet("QPushButton {"
                                           "text-align: left;"
-                                          'font: normal normal 15px "微软雅黑";'
+                                          f'font: normal normal {self.title_font_size}px "微软雅黑";'
                                           f"background-color: rgba(0,0,0,0);"
                                           f"color: rgba({color_rgba[0]}, {color_rgba[1]}, {color_rgba[2]}, {color_rgba[3]});"
                                           "border: none;"
                                           "}")
         self.__setMoveableArea()
 
+    def __setWindowStatusMenu(self):
+        self.WindowStatusMenu = QMenu(self)
+        self.WindowStatusMenu_qss = ("QMenu {"
+                                     "background-color:rgb(40, 40, 40);"
+                                     "color:rgb(255, 255, 255);"
+                                     "border: 1px solid rgb(127, 127, 127);"
+                                     "}"
+                                     "QMenu:item:selected {"
+                                     "background-color:rgb(80, 80, 80);"
+                                     "}"
+                                     "QMenu:separator{"
+                                     "height:1px;"
+                                     "background-color:rgba(123,123,123,1);"
+                                     "margin-left:22px;"
+                                     "margin-right:1px;"
+                                     "}"
+                                     "QMenu:item:disabled {"
+                                     "color:rgb(100,100,100);"
+                                     "background-color:rgb(40, 40, 40);"
+                                     "}")
+        self.WindowStatusMenu.setStyleSheet(self.WindowStatusMenu_qss)
+        self.NormalAction = QAction("还原(&R)", self)
+        self.NormalAction.setEnabled(False)
+        self.NormalAction.triggered.connect(self.showNormal)
+        self.NormalAction.setIcon(QIcon("normalborder.png"))
+        self.WindowStatusMenu.addAction(self.NormalAction)
+        self.MoveAction = QAction("移动(&M)", self)
+        self.WindowStatusMenu.addAction(self.MoveAction)
+        self.SizeAction = QAction("大小(&S)", self)
+        self.WindowStatusMenu.addAction(self.SizeAction)
+        self.MinAction = QAction("最小化(&N)", self)
+        self.MinAction.setIcon(QIcon("minborder.png"))
+        self.MinAction.triggered.connect(self.showMinimized)
+        self.WindowStatusMenu.addAction(self.MinAction)
+        self.MaxAction = QAction("最大化(&X)", self)
+        self.MaxAction.triggered.connect(self.showMaximized)
+        self.MaxAction.setIcon(QIcon("maxborder.png"))
+        self.WindowStatusMenu.addAction(self.MaxAction)
+        self.WindowStatusMenu.addSeparator()
+        self.CloseAction = QAction("关闭(&C)", self)
+        self.CloseAction.setShortcut("Alt+F4")
+        self.CloseAction.setIcon(QIcon("closeborder.png"))
+        self.CloseAction.triggered.connect(self.close)
+        self.WindowStatusMenu.addAction(self.CloseAction)
+
+    def __setWindowStatusMenuOnEdge(self):
+        self.WindowStatusMenu = QMenu(self)
+        self.WindowStatusMenu.setStyleSheet(self.WindowStatusMenu_qss)
+        self.NormalAction = QAction("还原(&R)", self)
+        self.NormalAction.triggered.connect(self.showNormal)
+        self.NormalAction.setIcon(QIcon("normalborder.png"))
+        self.WindowStatusMenu.addAction(self.NormalAction)
+        self.MoveAction = QAction("移动(&M)", self)
+        self.WindowStatusMenu.addAction(self.MoveAction)
+        self.SizeAction = QAction("大小(&S)", self)
+        self.SizeAction.setEnabled(False)
+        self.WindowStatusMenu.addAction(self.SizeAction)
+        self.MinAction = QAction("最小化(&N)", self)
+        self.MinAction.setIcon(QIcon("minborder.png"))
+        self.MinAction.triggered.connect(self.showMinimized)
+        self.WindowStatusMenu.addAction(self.MinAction)
+        self.MaxAction = QAction("最大化(&X)", self)
+        self.MaxAction.triggered.connect(self.showMaximized)
+        self.MaxAction.setIcon(QIcon("maxborder.png"))
+        self.WindowStatusMenu.addAction(self.MaxAction)
+        self.WindowStatusMenu.addSeparator()
+        self.CloseAction = QAction("关闭(&C)", self)
+        self.CloseAction.setShortcut("Alt+F4")
+        self.CloseAction.setIcon(QIcon("closeborder.png"))
+        self.CloseAction.triggered.connect(self.close)
+        self.WindowStatusMenu.addAction(self.CloseAction)
+
+    def __setWindowStatusMenuOnMax(self):
+        self.WindowStatusMenu = QMenu(self)
+        self.WindowStatusMenu.setStyleSheet(self.WindowStatusMenu_qss)
+        self.NormalAction = QAction("还原(&R)", self)
+        self.NormalAction.triggered.connect(self.showNormal)
+        self.NormalAction.setIcon(QIcon("normalborder.png"))
+        self.WindowStatusMenu.addAction(self.NormalAction)
+        self.MoveAction = QAction("移动(&M)", self)
+        self.WindowStatusMenu.addAction(self.MoveAction)
+        self.SizeAction = QAction("大小(&S)", self)
+        self.SizeAction.setEnabled(False)
+        self.WindowStatusMenu.addAction(self.SizeAction)
+        self.MinAction = QAction("最小化(&N)", self)
+        self.MinAction.setIcon(QIcon("minborder.png"))
+        self.MinAction.triggered.connect(self.showMinimized)
+        self.WindowStatusMenu.addAction(self.MinAction)
+        self.MaxAction = QAction("最大化(&X)", self)
+        self.MaxAction.setEnabled(False)
+        self.MaxAction.triggered.connect(self.showMaximized)
+        self.MaxAction.setIcon(QIcon("maxborder.png"))
+        self.WindowStatusMenu.addAction(self.MaxAction)
+        self.WindowStatusMenu.addSeparator()
+        self.CloseAction = QAction("关闭(&C)", self)
+        self.CloseAction.setShortcut("Alt+F4")
+        self.CloseAction.setIcon(QIcon("closeborder.png"))
+        self.CloseAction.triggered.connect(self.close)
+        self.WindowStatusMenu.addAction(self.CloseAction)
+
+    def __showWindowStatusMenuFromTitle(self, pos: QPoint):
+        self.WindowStatusMenu.exec(self.MoveableArea.mapToGlobal(pos))
+
+    def __showWindowStatusMenuFromIcon(self, pos: QPoint):
+        self.WindowStatusMenu.exec(self.icon_image.mapToGlobal(pos))
+
     def __setMinimumButton(self):
-        self.MinimumButton = QPushButton("—", self)
+        self.MinimumButton = QPushButton(self)
+        self.MinimumButton.setIcon(QIcon("min.png"))
+        self.MinimumButton.setIconSize(QSize(self.title_height - 20, self.title_height - 20))
         self.MinimumButton.setStyleSheet("QPushButton {"
                                          "background-color: rgba(25, 25, 25, 0);"
-                                         "color: rgba(255,255,255,1);"
                                          "border: none;"
                                          "}"
                                          "QPushButton:hover {"
-                                         "background-color: rgba(50, 50, 50, 1);"
-                                         "color: rgba(255,255,255,1);"
+                                         f"background-color: rgba({self.button_hoverColor[0]},{self.button_hoverColor[1]},{self.button_hoverColor[2]}, {self.button_hoverColor[3]});"
                                          "}")
         self.MinimumButton.resize(self.title_height, self.title_height)
         self.MinimumButton.move(self.MaximumButton.pos().x() - self.MinimumButton.size().width(), 0)
@@ -331,7 +459,7 @@ class FrameLessWindow(QMainWindow):
                                          "border: none;"
                                          "}"
                                          "QPushButton:hover {"
-                                         "background-color: rgba(50, 50, 50, 1);"
+                                         f"background-color: rgba({self.button_hoverColor[0]},{self.button_hoverColor[1]},{self.button_hoverColor[2]}, {self.button_hoverColor[3]});"
                                          "color: rgba(255,255,255,1);"
                                          "}")
         self.MaximumButton.move(self.CloseButton.pos().x() - self.MaximumButton.size().width(), 0)
@@ -348,7 +476,7 @@ class FrameLessWindow(QMainWindow):
                                        "border: none;"
                                        "}"
                                        "QPushButton:hover {"
-                                       "background-color: rgba(250, 0, 0, 1);"
+                                       f"background-color: rgba({self.closeButton_hoverColor[0]},{self.closeButton_hoverColor[1]},{self.closeButton_hoverColor[2]}, {self.closeButton_hoverColor[3]});"
                                        "color: rgba(255,255,255,1);"
                                        "}")
         self.CloseButton.move(self.size().width() - self.CloseButton.size().width(), 0)
@@ -377,6 +505,8 @@ class FrameLessWindow(QMainWindow):
         self.MoveableArea.mouseMoveEvent = self.__moveMoveEvent
         self.MoveableArea.mouseReleaseEvent = self.__moveReleaseEvent
         self.MoveableArea.mouseDoubleClickEvent = self.__titleDoubleClickedEvent
+        self.MoveableArea.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.MoveableArea.customContextMenuRequested.connect(self.__showWindowStatusMenuFromTitle)
         self.__setToUpArea()
 
     def __setToUpArea(self):
@@ -757,7 +887,10 @@ class FrameLessWindow(QMainWindow):
 
 
 app = QApplication(sys.argv)
-window = FrameLessWindow(taskbar_height=40, background_color_rgba=[0,0,0,1])
+window = FrameLessWindow(taskbar_height=40,
+                         title_height=35,
+                         title_font_size=15,
+                         MinimumSize=QSize(800, 450))
 window.setWindowTitle("FramelessWindow 示例")
 window.setWindowIcon(QIcon("icon.png"))  # 替换成你的图标路径
 window.show()
