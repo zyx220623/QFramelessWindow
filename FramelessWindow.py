@@ -87,6 +87,12 @@ class FrameLessWindow(QMainWindow):
         self.title = arg__1
         self.__setWindowTitleBar(background_color_rgba=self.title_background_color_rgba,
                                  color_rgba=self.title_text_color_rgba)
+        try:
+            self.icon_image
+        except:
+            pass
+        else:
+            self.icon_image.raise_()
 
     def setWindowIcon(self, icon: QIcon | QPixmap):
         def windowIconDoubleClickedEvent(event: QMouseEvent):
@@ -212,6 +218,7 @@ class FrameLessWindow(QMainWindow):
         self.MaximumButton.setIcon(QIcon("normal.png"))
         self.__setNoneEvent()
         self.__setWindowStatusMenuOnMax()
+        QCursor.setPos(QCursor.pos().x() - 1, QCursor.pos().y() - 1)
 
     def showLined(self):
         self.setGeometry(self.pos().x(), 0, self.size().width(), self.__screen__.height() - self.taskbar_height)
@@ -222,6 +229,7 @@ class FrameLessWindow(QMainWindow):
                          self.normal_geometry.height())
         self.MaximumButton.setIcon(QIcon("max.png"))
         self.__setNormalEvent()
+        QCursor.setPos(QCursor.pos().x() - 1, QCursor.pos().y() - 1)
         if self.pos().y() <= 5 and self.__isLined() is not True:
             self.move(self.normal_geometry.x(), 5)
 
@@ -891,7 +899,7 @@ window = FrameLessWindow(taskbar_height=40,
                          title_height=35,
                          title_font_size=15,
                          MinimumSize=QSize(800, 450))
-window.setWindowTitle("FramelessWindow 示例")
 window.setWindowIcon(QIcon("icon.png"))  # 替换成你的图标路径
+window.setWindowTitle("FramelessWindow 示例")
 window.show()
 app.exec()
