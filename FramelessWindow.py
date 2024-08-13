@@ -37,7 +37,12 @@ class FrameLessWindow(QMainWindow):
         self.beginning_pos_up = QCursor().pos()
         self.beginning_pos_down = QCursor().pos()
         self.setMouseTracking(True)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self.setWindowFlags(Qt.WindowType.Window |
+                            Qt.WindowType.FramelessWindowHint |
+                            Qt.WindowType.WindowSystemMenuHint |
+                            Qt.WindowType.WindowMinimizeButtonHint |
+                            Qt.WindowType.WindowMaximizeButtonHint |
+                            Qt.WindowType.WindowCloseButtonHint)
         self.__setWindowStatusMenu()
         self.__screen__ = QGuiApplication.primaryScreen().size()
 
