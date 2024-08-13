@@ -223,17 +223,25 @@ class FrameLessWindow(QMainWindow):
         self.MaximumButton.setIcon(QIcon("normal.png"))
         self.__setNoneEvent()
         self.__setWindowStatusMenuOnMax()
+        self.MaximumButton.setToolTip("向下还原")
         QCursor.setPos(QCursor.pos().x() - 1, QCursor.pos().y() - 1)
 
     def showLined(self):
         self.setGeometry(self.pos().x(), 0, self.size().width(), self.__screen__.height() - self.taskbar_height)
         self.__setNoneEvent()
 
+    def showLinedEvent(self, event):
+        if self.__isLined() and not (self.__isFullSide() or self.isMaximized()):
+            self.showNormal()
+        elif not (self.isMinimized() or self.__isFullCorner()):
+            self.showLined()
+
     def showNormal(self):
         self.setGeometry(self.normal_geometry.x(), self.normal_geometry.y(), self.normal_geometry.width(),
                          self.normal_geometry.height())
         self.MaximumButton.setIcon(QIcon("max.png"))
         self.__setNormalEvent()
+        self.MaximumButton.setToolTip("最大化")
         QCursor.setPos(QCursor.pos().x() - 1, QCursor.pos().y() - 1)
         if self.pos().y() <= 5 and self.__isLined() is not True:
             self.move(self.normal_geometry.x(), 5)
@@ -241,6 +249,7 @@ class FrameLessWindow(QMainWindow):
     def showSizeNormal(self):
         self.resize(self.normal_geometry.width(), self.normal_geometry.height())
         self.MaximumButton.setIcon(QIcon("max.png"))
+        self.MaximumButton.setToolTip("最大化")
         self.__setNormalEvent()
 
     def showUpLeft(self):
@@ -459,6 +468,7 @@ class FrameLessWindow(QMainWindow):
                                          "}")
         self.MinimumButton.resize(self.title_height, self.title_height)
         self.MinimumButton.move(self.MaximumButton.pos().x() - self.MinimumButton.size().width(), 0)
+        self.MinimumButton.setToolTip("最小化")
         self.MinimumButton.clicked.connect(self.showMinimized)
 
     def __setMaximumButton(self):
@@ -475,6 +485,7 @@ class FrameLessWindow(QMainWindow):
                                          f"background-color: rgba({self.button_hoverColor[0]},{self.button_hoverColor[1]},{self.button_hoverColor[2]}, {self.button_hoverColor[3]});"
                                          "color: rgba(255,255,255,1);"
                                          "}")
+        self.MaximumButton.setToolTip("最大化")
         self.MaximumButton.move(self.CloseButton.pos().x() - self.MaximumButton.size().width(), 0)
         self.MaximumButton.clicked.connect(self.MaximumButtonClickedEvent)
 
@@ -493,6 +504,7 @@ class FrameLessWindow(QMainWindow):
                                        "color: rgba(255,255,255,1);"
                                        "}")
         self.CloseButton.move(self.size().width() - self.CloseButton.size().width(), 0)
+        self.CloseButton.setToolTip("关闭")
         self.CloseButton.raise_()
         self.CloseButton.clicked.connect(self.close)
 
@@ -546,6 +558,7 @@ class FrameLessWindow(QMainWindow):
         self.ToDownArea.mouseMoveEvent = self.__toDownMoveEvent
         self.ToDownArea.mousePressEvent = self.__toDownPressEvent
         self.ToDownArea.mouseReleaseEvent = self.__toDownReleaseEvent
+        self.ToDownArea.mouseDoubleClickEvent = self.showLinedEvent
         self.__setToLeftArea()
 
     def __setToLeftArea(self):
@@ -605,6 +618,7 @@ class FrameLessWindow(QMainWindow):
                 self.movemode = 4
             elif self.__isLined():
                 self.movemode = 2
+                self.LineToNormalS = self.size()
             else:
                 self.movemode = 0
         event.accept()
@@ -632,7 +646,8 @@ class FrameLessWindow(QMainWindow):
                     (event.globalPosition().toPoint() - self.mouse_click_position).y())
             elif self.movemode == 2:
                 self.showSizeNormal()
-                self.move(event.globalPosition().toPoint() - self.mouse_click_position)
+                self.move(event.globalPosition().toPoint().x() - self.mouse_click_position.x() * self.normal_geometry.width() // self.LineToNormalS.width(),
+                          (event.globalPosition().toPoint() - self.mouse_click_position).y())
 
         event.accept()
 
@@ -656,8 +671,11 @@ class FrameLessWindow(QMainWindow):
                     self.__screen__.height() - 5 >= QCursor.pos().y() >= 5:
                 self.showFullRight()
             elif QCursor.pos().y() >= self.__screen__.height() - self.taskbar_height and 5 <= QCursor.pos().x() <= self.__screen__.width() - 5:
-                self.setGeometry(self.normal_geometry.x(), self.normal_geometry.y(), self.normal_geometry.width(),
+                self.setGeometry((self.__screen__.width() - self.normal_geometry.width()) // 2,
+                                 (self.__screen__.height() - self.normal_geometry.height() - self.taskbar_height) // 2,
+                                 self.normal_geometry.width(),
                                  self.normal_geometry.height())
+                self.normal_geometry = QRect(self.pos().x(), self.pos().y(), self.size().width(), self.size().height())
             elif not (self.isMaximized() or self.__isLined() or self.__isFullSide() or self.__isFullCorner()):
                 self.normal_geometry = QRect(self.pos().x(), self.pos().y(), self.size().width(), self.size().height())
         event.accept()
@@ -776,7 +794,10 @@ class FrameLessWindow(QMainWindow):
     def __UpLeftReleaseEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
             self.upleft_resized = False
-            self.normal_geometry = QRect(self.pos().x(), self.pos().y(), self.size().width(), self.size().height())
+            if QCursor.pos().y() <= 0 and QGuiApplication.primaryScreen().geometry().width() - 5 > QCursor.pos().x() > 5:
+                self.showLined()
+            else:
+                self.normal_geometry = QRect(self.pos().x(), self.pos().y(), self.size().width(), self.size().height())
         event.accept()
 
     def __setUpRightArea(self):
@@ -815,7 +836,10 @@ class FrameLessWindow(QMainWindow):
     def __UpRightReleaseEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
             self.upright_resized = False
-            self.normal_geometry = QRect(self.pos().x(), self.pos().y(), self.size().width(), self.size().height())
+            if QCursor.pos().y() <= 0 and QGuiApplication.primaryScreen().geometry().width() - 5 > QCursor.pos().x() > 5:
+                self.showLined()
+            else:
+                self.normal_geometry = QRect(self.pos().x(), self.pos().y(), self.size().width(), self.size().height())
         event.accept()
 
     def __setDownRightArea(self):
@@ -855,7 +879,11 @@ class FrameLessWindow(QMainWindow):
     def __DownRightReleaseEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
             self.downright_resized = False
-            self.normal_geometry = QRect(self.pos().x(), self.pos().y(), self.size().width(), self.size().height())
+            if QCursor.pos().y() >= self.__screen__.height() - self.taskbar_height and \
+                    5 <= QCursor.pos().x() <= self.__screen__.width() - self.edge:
+                self.showLined()
+            else:
+                self.normal_geometry = QRect(self.pos().x(), self.pos().y(), self.size().width(), self.size().height())
         event.accept()
 
     def __setDownLeftArea(self):
@@ -895,7 +923,11 @@ class FrameLessWindow(QMainWindow):
     def __DownLeftReleaseEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
             self.downleft_resized = False
-            self.normal_geometry = QRect(self.pos().x(), self.pos().y(), self.size().width(), self.size().height())
+            if QCursor.pos().y() >= self.__screen__.height() - self.taskbar_height and \
+                    5 <= QCursor.pos().x() <= self.__screen__.width() - self.edge:
+                self.showLined()
+            else:
+                self.normal_geometry = QRect(self.pos().x(), self.pos().y(), self.size().width(), self.size().height())
         event.accept()
 
 
